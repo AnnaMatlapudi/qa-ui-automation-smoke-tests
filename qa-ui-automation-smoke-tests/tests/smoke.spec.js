@@ -50,17 +50,24 @@ test.describe('UI Smoke Suite - the-internet.herokuapp.com', () => {
     await expect(dropdown).toHaveValue('2');
   });
 
-  test('Broken images - detect at least one broken image (heuristic)', async ({ page }) => {
+    test('Broken images - at least one image request is not OK (deterministic)', async ({ page, request }) => {
     await page.goto('/broken_images');
 
-    const imgs = page.locator('img');
-    await expect(imgs).toHaveCount(3);
+    const srcs = await page.$$eval('img', imgs =>
+      imgs.map(img => img.getAttribute('src')).filter(Boolean)
+    );
 
-    const brokenCount = await page.evaluate(() => {
-      const images = Array.from(document.querySelectorAll('img'));
-      return images.filter(img => img.naturalWidth === 0).length;
-    });
+    // Resolve relative URLs to absolute
+    const urls = srcs.map(src => new URL(src, page.url()).toString());
 
-    expect(brokenCount).toBeGreaterThanOrEqual(1);
+    let nonOkCount = 0;
+
+    for (const url of urls) {
+      const resp = await request.get(url);
+      if (!resp.ok()) nonOkCount += 1;
+    }
+
+    expect(nonOkCount).toBeGreaterThanOrEqual(1);
   });
+
 });
