@@ -1,0 +1,1 @@
+This folder is reserved for reports. Playwright generates `playwright-report/` after test runs.
